@@ -25,6 +25,8 @@ struct Team {
 
 struct BoxScoreView: View {
     @State var teams: [Team]
+    @State private var selectedPlayer: Player?
+    @State private var showGestureModal = false
 
     var body: some View {
         ScrollView {
@@ -45,20 +47,26 @@ struct BoxScoreView: View {
                         .foregroundColor(.gray)
 
                         ForEach(teams[index].players.indices, id: \.self) { playerIndex in
-                            HStack {
-                                TextField("Name", text: $teams[index].players[playerIndex].name)
-                                    .frame(width: 100, alignment: .leading)
-                                TextField("PTS", value: $teams[index].players[playerIndex].points, format: .number)
-                                    .frame(width: 40)
-                                TextField("REB", value: $teams[index].players[playerIndex].rebounds, format: .number)
-                                    .frame(width: 40)
-                                TextField("AST", value: $teams[index].players[playerIndex].assists, format: .number)
-                                    .frame(width: 40)
-                                TextField("TO", value: $teams[index].players[playerIndex].turnovers, format: .number)
-                                    .frame(width: 40)
+                            Button(action: {
+                                selectedPlayer = teams[index].players[playerIndex]
+                                showGestureModal = true
+                            }) {
+                                HStack {
+                                    TextField("Name", text: $teams[index].players[playerIndex].name)
+                                        .frame(width: 100, alignment: .leading)
+                                    Text("\(teams[index].players[playerIndex].points)")
+                                        .frame(width: 40)
+                                    Text("\(teams[index].players[playerIndex].rebounds)")
+                                        .frame(width: 40)
+                                    Text("\(teams[index].players[playerIndex].assists)")
+                                        .frame(width: 40)
+                                    Text("\(teams[index].players[playerIndex].turnovers)")
+                                        .frame(width: 40)
+                                }
+                                .textFieldStyle(.roundedBorder)
+                                .padding(.vertical, 2)
                             }
-                            .textFieldStyle(.roundedBorder)
-                            .padding(.vertical, 2)
+                            .buttonStyle(.plain)
                         }
                     }
                     Divider()
@@ -66,6 +74,43 @@ struct BoxScoreView: View {
             }
             .padding()
         }
+        .sheet(isPresented: $showGestureModal) {
+            if let selected = selectedPlayer {
+                GestureInputView(player: selected, onGesture: { direction in
+                    // Handle gesture directions here (e.g., update stats)
+                    showGestureModal = false
+                })
+            }
+        }
+    }
+}
+
+struct GestureInputView: View {
+    var player: Player
+    var onGesture: (String) -> Void
+
+    var body: some View {
+        VStack {
+            Text("Gesture input for \(player.name)")
+                .font(.headline)
+            Spacer()
+            Text("Swipe here")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.gray.opacity(0.2))
+                .gesture(
+                    DragGesture()
+                        .onEnded { value in
+                            let direction: String
+                            if abs(value.translation.width) > abs(value.translation.height) {
+                                direction = value.translation.width > 0 ? "right" : "left"
+                            } else {
+                                direction = value.translation.height > 0 ? "down" : "up"
+                            }
+                            onGesture(direction)
+                        }
+                )
+        }
+        .padding()
     }
 }
 
